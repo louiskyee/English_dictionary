@@ -39,7 +39,7 @@ uint32_t Murmur3_32(std::string data, const int length, uint32_t seed) {
 	k = 0;
 	switch (remaining_Bytes)
 	{
-	case 3: k ^= data[(total_32bit_blocks * 4) + 2] << 16;	//���I�լݬ�or
+	case 3: k ^= data[(total_32bit_blocks * 4) + 2] << 16;	//±ßÂI¸Õ¬Ý¬Ýor
 	case 2: k ^= data[(total_32bit_blocks * 4) + 1] << 8;
 	case 1: k ^= data[(total_32bit_blocks * 4) + 0];
 		k *= c1;
@@ -131,7 +131,7 @@ int main(void) {
 		}
 		file.close();
 		//============================================================================================================================
-		inputFile.open("input_500.txt", std::ios::in);
+		inputFile.open("test.txt", std::ios::in);
 		if (inputFile) {
 			csvFile.open("answer.csv", std::ios::out);
 			uint32_t index = 0;
