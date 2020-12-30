@@ -130,7 +130,7 @@ int main(void) {
 		}
 		file.close();
 		//============================================================================================================================
-		inputFile.open("input_500.txt", std::ios::in);
+		inputFile.open("test.txt", std::ios::in);
 		if (inputFile) {
 			csvFile.open("answer.csv", std::ios::out);
 			uint32_t index = 0;
