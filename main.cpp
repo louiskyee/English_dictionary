@@ -1,6 +1,6 @@
 #include <iostream>
+#include <unordered_map>
 #include <string>
-#include <map>
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -22,8 +22,7 @@ uint32_t Murmur3_32(std::string data, const int length, uint32_t seed) {
 	const int remaining_Bytes = length & 3; // data.length() % 4
 	const int total_32bit_blocks = (length - remaining_Bytes) / 4;	//total 32bit blocks
 	uint32_t hash = seed;
-	uint32_t k;
-
+	uint32_t k;	
 	for (int i = 0; i < total_32bit_blocks; i++)
 	{
 		k = 0;
@@ -39,7 +38,7 @@ uint32_t Murmur3_32(std::string data, const int length, uint32_t seed) {
 	k = 0;
 	switch (remaining_Bytes)
 	{
-	case 3: k ^= data[(total_32bit_blocks * 4) + 2] << 16;	//±ßÂI¸Õ¬Ý¬Ýor
+	case 3: k ^= data[(total_32bit_blocks * 4) + 2] << 16;
 	case 2: k ^= data[(total_32bit_blocks * 4) + 1] << 8;
 	case 1: k ^= data[(total_32bit_blocks * 4) + 0];
 		k *= c1;
@@ -63,14 +62,14 @@ bool repeat(std::vector<std::string>& database, std::string str) {
 	}
 	return false;
 }
-void mis_spelled(std::map<uint32_t, std::string>& dictionary, std::vector<std::string>& output, std::string str, bool done) {
+void mis_spelled(std::unordered_map<std::string, uint32_t>& dictionary, std::vector<std::string>& output, std::string str, bool done) {
 	for (int i = 0; i <= str.length(); ++i) {	//insert
 		std::string str1 = str.substr(0, i);
 		std::string str2 = str.substr(i, str.length() - i);
 		for (char j = 'a'; j <= 'z'; ++j) {
 			std::string _str = str1 + j + str2;
-			std::map<uint32_t, std::string>::iterator iter = dictionary.find(Murmur3_32(_str, _str.length(), 4));
-			if (iter != dictionary.end() && iter->second == _str && !repeat(output, _str)) { output.push_back(_str); }
+			std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
+			if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
 			if (!done) { mis_spelled(dictionary, output, _str, true); }
 		}
 	}
@@ -78,28 +77,28 @@ void mis_spelled(std::map<uint32_t, std::string>& dictionary, std::vector<std::s
 		std::string str1 = str.substr(0, i);
 		std::string str2 = str.substr(i + 1, str.length() - i - 1);
 		std::string _str = str1 + str2;
-		std::map<uint32_t, std::string>::iterator iter = dictionary.find(Murmur3_32(_str, _str.length(), 4));
-		if (iter != dictionary.end() && iter->second == _str && !repeat(output, _str)) { output.push_back(_str); }
+		std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
+		if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
 		if (!done) { mis_spelled(dictionary, output, _str, true); }
 	}
 	for (int i = 0; i < str.length(); ++i) {	//substitute
 		for (char j = 'a'; j <= 'z'; ++j) {
 			std::string _str = str;
 			_str[i] = j;
-			std::map<uint32_t, std::string>::iterator iter = dictionary.find(Murmur3_32(_str, _str.length(), 4));
-			if (iter != dictionary.end() && iter->second == _str && !repeat(output, _str)) { output.push_back(_str); }
+			std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
+			if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
 			if (!done) { mis_spelled(dictionary, output, _str, true); }
 		}
 	}
 	for (int i = 0; i < str.length() - 1; ++i) {	//transpose
 		std::string _str = str;
 		std::swap(_str[i], _str[i + 1]);
-		std::map<uint32_t, std::string>::iterator iter = dictionary.find(Murmur3_32(_str, _str.length(), 4));
-		if (iter != dictionary.end() && iter->second == _str && !repeat(output, _str)) { output.push_back(_str); }
+		std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
+		if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
 		if (!done) { mis_spelled(dictionary, output, _str, true); }
 	}
 }
-bool compare(std::string a, std::string b) {		//check if a >= b, yes return false
+bool compare(std::string& a, std::string& b) {		//check if a >= b, yes return false
 	if (a.length() == b.length() || a.length() > b.length()) {
 		for (int i = 0; i < b.length(); ++i) {
 			if (a[i] > b[i]) return false;
@@ -116,7 +115,7 @@ bool compare(std::string a, std::string b) {		//check if a >= b, yes return fals
 	}
 }
 int main(void) {
-	std::map<uint32_t, std::string> dictionary;
+	std::unordered_map<std::string, uint32_t> dictionary;
 	std::fstream file;
 	std::fstream inputFile;
 	std::fstream csvFile;
@@ -127,11 +126,11 @@ int main(void) {
 			std::getline(file, str);
 		}
 		while (file >> str) {
-			dictionary.insert(std::pair<uint32_t, std::string>(Murmur3_32(str, str.length(), seed), str));
+			dictionary[str] = Murmur3_32(str, str.length(), seed);
 		}
 		file.close();
 		//============================================================================================================================
-		inputFile.open("test.txt", std::ios::in);
+		inputFile.open("input_500.txt", std::ios::in);
 		if (inputFile) {
 			csvFile.open("answer.csv", std::ios::out);
 			uint32_t index = 0;
@@ -139,7 +138,7 @@ int main(void) {
 			while (inputFile >> str) {
 				csvFile << str << ',';
 				std::vector<std::string> output;
-				std::map<uint32_t, std::string>::iterator iter = dictionary.find(Murmur3_32(str, str.length(), seed));
+				std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(str);
 				if (iter != dictionary.end()) {		//printf OK
 					csvFile << "OK\n";
 				}
