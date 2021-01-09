@@ -168,7 +168,7 @@ int main(void) {
 		}
 		file.close();
 		//============================================================================================================================
-		inputFile.open("input.txt", std::ios::in);
+		inputFile.open("test.txt", std::ios::in);
 		if (inputFile) {
 			csvFile.open("answer.csv", std::ios::out);
 			csvFile << "word" << ',' << "answer" << '\n';
