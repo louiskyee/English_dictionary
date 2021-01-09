@@ -191,7 +191,7 @@ int main(void) {
 				}
 			}
 			csvFile.close();
-			//inputFile.close();
+			inputFile.close();
 			//finish = clock();
 			//double duration = (double)(finish - start) / CLOCKS_PER_SEC;
 			//printf("insert seconds = %f\n", duration);
