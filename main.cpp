@@ -1,10 +1,22 @@
 #include <iostream>
-#include <unordered_map>
 #include <string>
 #include <fstream>
 #include <vector>
 #include <algorithm>
-const uint32_t seed = 4;
+//#include <ctime>
+#define TSIZE 100000
+#define remainder 100000
+#define  seed 9406
+class Node {
+public:
+	char* str;
+	Node* next;
+	Node() :str(NULL), next(NULL) {};
+	Node operator=(const Node& a) {
+		str = a.str;
+		next = a.next;
+	}
+};
 uint32_t get_32bit_Block(std::string str, int index)
 {
 	return	 str[(index * 4) + 3] +
@@ -12,7 +24,7 @@ uint32_t get_32bit_Block(std::string str, int index)
 		(str[(index * 4) + 1] << 16) +
 		(str[(index * 4) + 0] << 24);
 }
-uint32_t Murmur3_32(std::string data, const int length, uint32_t seed) {
+uint32_t Murmur3_32(std::string data, const int length) {
 	const uint32_t c1 = 0xcc9e2d51;
 	const uint32_t c2 = 0x1b873593;
 	const int r1 = 15;
@@ -22,7 +34,7 @@ uint32_t Murmur3_32(std::string data, const int length, uint32_t seed) {
 	const int remaining_Bytes = length & 3; // data.length() % 4
 	const int total_32bit_blocks = (length - remaining_Bytes) / 4;	//total 32bit blocks
 	uint32_t hash = seed;
-	uint32_t k;	
+	uint32_t k;
 	for (int i = 0; i < total_32bit_blocks; i++)
 	{
 		k = 0;
@@ -54,7 +66,7 @@ uint32_t Murmur3_32(std::string data, const int length, uint32_t seed) {
 	hash *= 0xc2b2ae35;
 	hash ^= hash >> 16;
 
-	return hash;
+	return hash % remainder;
 }
 bool repeat(std::vector<std::string>& database, std::string str) {
 	for (int i = 0; i < database.size(); ++i) {
@@ -62,43 +74,49 @@ bool repeat(std::vector<std::string>& database, std::string str) {
 	}
 	return false;
 }
-void mis_spelled(std::unordered_map<std::string, uint32_t>& dictionary, std::vector<std::string>& output, std::string str, bool done) {
+bool searchTable(Node arr[TSIZE], uint32_t index, std::string key) {
+	if (arr[index].str == NULL)return false;
+	if (arr[index].str == key)return true;
+	Node* temp = arr[index].next;
+	while (temp != NULL) {
+		if (temp->str == key)return true;
+		temp = temp->next;
+	}
+	return false;
+}
+void mis_spelled(Node arr[TSIZE], std::vector<std::string>& output, std::string str, bool done) {
 	for (int i = 0; i <= str.length(); ++i) {	//insert
 		std::string str1 = str.substr(0, i);
 		std::string str2 = str.substr(i, str.length() - i);
 		for (char j = 'a'; j <= 'z'; ++j) {
 			std::string _str = str1 + j + str2;
-			std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
-			if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
-			if (!done) { mis_spelled(dictionary, output, _str, true); }
+			if (searchTable(arr, Murmur3_32(_str, _str.length()), _str) && !repeat(output, _str)) { output.push_back(_str); }
+			if (!done) { mis_spelled(arr, output, _str, true); }
 		}
 	}
 	for (int i = 0; i < str.length(); ++i) {	//delete
 		std::string str1 = str.substr(0, i);
 		std::string str2 = str.substr(i + 1, str.length() - i - 1);
 		std::string _str = str1 + str2;
-		std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
-		if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
-		if (!done) { mis_spelled(dictionary, output, _str, true); }
+		if (searchTable(arr, Murmur3_32(_str, _str.length()), _str) && !repeat(output, _str)) { output.push_back(_str); }
+		if (!done) { mis_spelled(arr, output, _str, true); }
 	}
 	for (int i = 0; i < str.length(); ++i) {	//substitute
 		for (char j = 'a'; j <= 'z'; ++j) {
 			std::string _str = str;
 			_str[i] = j;
-			std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
-			if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
-			if (!done) { mis_spelled(dictionary, output, _str, true); }
+			if (searchTable(arr, Murmur3_32(_str, _str.length()), _str) && !repeat(output, _str)) { output.push_back(_str); }
+			if (!done) { mis_spelled(arr, output, _str, true); }
 		}
 	}
 	for (int i = 0; i < str.length() - 1; ++i) {	//transpose
 		std::string _str = str;
 		std::swap(_str[i], _str[i + 1]);
-		std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(_str);
-		if (iter != dictionary.end() && !repeat(output, _str)) { output.push_back(_str); }
-		if (!done) { mis_spelled(dictionary, output, _str, true); }
+		if (searchTable(arr, Murmur3_32(_str, _str.length()), _str) && !repeat(output, _str)) { output.push_back(_str); }
+		if (!done) { mis_spelled(arr, output, _str, true); }
 	}
 }
-bool compare(std::string& a, std::string& b) {		//check if a >= b, yes return false
+bool compare(std::string a, std::string b) {		//check if a >= b, yes return false
 	if (a.length() == b.length() || a.length() > b.length()) {
 		for (int i = 0; i < b.length(); ++i) {
 			if (a[i] > b[i]) return false;
@@ -115,35 +133,53 @@ bool compare(std::string& a, std::string& b) {		//check if a >= b, yes return fa
 	}
 }
 int main(void) {
-	std::unordered_map<std::string, uint32_t> dictionary;
 	std::fstream file;
 	std::fstream inputFile;
 	std::fstream csvFile;
 	std::string str;
+	//clock_t start, finish;
+	unsigned int index;
+	Node arr[TSIZE];
 	file.open("dictionary.txt", std::ios::in);
 	if (file) {
+		//start = clock();
 		for (int i = 0; i < 56; ++i) {
 			std::getline(file, str);
 		}
 		while (file >> str) {
-			dictionary[str] = Murmur3_32(str, str.length(), seed);
+			index = Murmur3_32(str, str.length());
+			if (arr[index].str == NULL) {
+				arr[index].str = new char[str.length() + 1];
+				strncpy_s(arr[index].str, str.length() + 1, str.c_str(), str.length());
+			}
+			else {
+				Node* cur = arr[index].next;
+				Node* pre = NULL;
+				while (cur != NULL) {
+					pre = cur;
+					cur = cur->next;
+				}
+				cur = new Node;
+				cur->str = new char[str.length() + 1];
+				strncpy_s(cur->str, str.length() + 1, str.c_str(), str.length());
+				if (pre == NULL) arr[index].next = cur;
+				else pre->next = cur;
+			}
 		}
 		file.close();
 		//============================================================================================================================
-		inputFile.open("test.txt", std::ios::in);
+		inputFile.open("input.txt", std::ios::in);
 		if (inputFile) {
 			csvFile.open("answer.csv", std::ios::out);
-			uint32_t index = 0;
 			csvFile << "word" << ',' << "answer" << '\n';
 			while (inputFile >> str) {
 				csvFile << str << ',';
 				std::vector<std::string> output;
-				std::unordered_map<std::string, uint32_t>::iterator iter = dictionary.find(str);
-				if (iter != dictionary.end()) {		//printf OK
+				if (searchTable(arr, Murmur3_32(str, str.length()), str)) {		//printf OK
 					csvFile << "OK\n";
 				}
 				else {
-					mis_spelled(dictionary, output, str, false);
+					mis_spelled(arr, output, str, false);
 					if (output.size() != 0) {
 						std::sort(output.begin(), output.end(), compare);
 						for (int i = 0; i < output.size() - 1; ++i) {
@@ -151,11 +187,15 @@ int main(void) {
 						}
 						csvFile << output[output.size() - 1] << '\n';
 					}
-					else { csvFile << "NONE\n"; }
+					else { csvFile << "NONE\n"; }	//printf NONE
 				}
 			}
 			csvFile.close();
-			inputFile.close();
+			//inputFile.close();
+			//finish = clock();
+			//double duration = (double)(finish - start) / CLOCKS_PER_SEC;
+			//printf("insert seconds = %f\n", duration);
+			//system("pause");
 		}
 		else {
 			printf("Open input.txt error!!\n");
